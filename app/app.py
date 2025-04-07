@@ -1,18 +1,19 @@
 from flask import Flask, request, redirect, jsonify
 import random
 import string
+import redis
 
 app = Flask(__name__)
 
-# In-memory key-value store for URLs
-url_mapping = {}
+# Connect to Redis
+redis_client = redis.StrictRedis(host='redis-container', port=6379, decode_responses=True)
 
-# Function to generate a short URL (random 6-character string)
+# Function to generate a random short URL
 def generate_short_url():
-    characters = string.ascii_letters + string.digits  # a-z, A-Z, 0-9
+    characters = string.ascii_letters + string.digits
     return ''.join(random.choices(characters, k=6))
 
-# API: Shorten a URL
+# API to shorten URL
 @app.route('/shorten', methods=['POST'])
 def shorten_url():
     data = request.get_json()
@@ -22,17 +23,17 @@ def shorten_url():
         return jsonify({"error": "URL is required"}), 400
 
     short_url = generate_short_url()
-    url_mapping[short_url] = long_url  # Store mapping
+    redis_client.set(short_url, long_url)  # Store in Redis
 
     return jsonify({"short_url": f"http://localhost:5000/{short_url}"})
 
-# API: Redirect to original URL
+# API to redirect from short URL to long URL
 @app.route('/<short_url>')
 def redirect_url(short_url):
-    long_url = url_mapping.get(short_url)
+    long_url = redis_client.get(short_url)  # Fetch from Redis
 
     if long_url:
-        return redirect(long_url)  # Redirect to the original URL
+        return redirect(long_url)
     else:
         return jsonify({"error": "Short URL not found"}), 404
 
