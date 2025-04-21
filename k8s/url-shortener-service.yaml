@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: url-shortener-service
 spec:
-  type: NodePort
   selector:
     app: url-shortener
   ports:
-  - port: 5000
-    targetPort: 5000
-    nodePort: 30007 # optional: system assigns one if not given
+    - protocol: TCP
+      port: 80        # Exposed port
+      targetPort: 5000 # Your app's Flask port
+
