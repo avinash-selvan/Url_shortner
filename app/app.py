@@ -2,11 +2,15 @@ from flask import Flask, request, redirect, jsonify
 import random
 import string
 import redis
+import os
 
 app = Flask(__name__)
 
+redis_host = os.getenv('REDIS_HOST', 'localhost')
+redis_port = int(os.getenv('REDIS_PORT',6379))
+
 # Connect to Redis
-redis_client = redis.StrictRedis(host='redis-container', port=6379, decode_responses=True)
+redis_client = redis.StrictRedis(host=redis_host, port=redis_host, decode_responses=True)
 
 # Function to generate a random short URL
 def generate_short_url():
@@ -24,8 +28,9 @@ def shorten_url():
 
     short_url = generate_short_url()
     redis_client.set(short_url, long_url)  # Store in Redis
-
-    return jsonify({"short_url": f"http://localhost:5000/{short_url}"})
+    
+    service_host = request.host_url
+    return jsonify({"short_url": f"{service_host}{short_url}"})
 
 # API to redirect from short URL to long URL
 @app.route('/<short_url>')
